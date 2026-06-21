@@ -1,0 +1,10 @@
+projection;
+strict ( 2 );
+
+define behavior for YDE_CRUD_CV_INSPETOR //alias <alias_name>
+{
+  use create;
+  use update;
+
+  use action deletarRegistro;
+}

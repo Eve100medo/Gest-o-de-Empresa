@@ -1,0 +1,87 @@
+FUNCTION YSFM_VALIDA_CPF.
+*"----------------------------------------------------------------------
+*"*"Interface local:
+*"  IMPORTING
+*"     REFERENCE(I_CPF) TYPE  /TMF/F_CPF
+*"  EXPORTING
+*"     REFERENCE(E_VALIDO) TYPE  ABAP_BOOL
+*"----------------------------------------------------------------------
+
+
+
+
+  DATA: lv_cpf       TYPE char11,
+        lv_num       TYPE i,
+        lv_soma      TYPE i,
+        lv_resto     TYPE i,
+        lv_digito1   TYPE i,
+        lv_digito2   TYPE i,
+        lv_peso      TYPE i,
+        lv_index     TYPE i,
+        lv_caracter  TYPE char1.
+
+  e_valido = abap_false.
+  lv_cpf    = i_cpf.
+
+  " 1. Verifica se tem 11 dígitos e se não é uma sequência repetida boba (Ex: 11111111111)
+  IF strlen( lv_cpf ) <> 11 OR
+     lv_cpf = '00000000000' OR lv_cpf = '11111111111' OR
+     lv_cpf = '22222222222' OR lv_cpf = '33333333333' OR
+     lv_cpf = '44444444444' OR lv_cpf = '55555555555' OR
+     lv_cpf = '66666666666' OR lv_cpf = '77777777777' OR
+     lv_cpf = '88888888888' OR lv_cpf = '99999999999'.
+    RETURN.
+  ENDIF.
+
+  " 2. Cálculo do Primeiro Dígito Verificador
+  lv_soma = 0.
+  lv_peso = 10.
+  lv_index = 0.
+
+  DO 9 TIMES.
+    lv_caracter = lv_cpf+lv_index(1).
+    lv_num = lv_caracter.
+    lv_soma = lv_soma + ( lv_num * lv_peso ).
+    lv_peso = lv_peso - 1.
+    lv_index = lv_index + 1.
+  ENDDO.
+
+  lv_resto = lv_soma MOD 11.
+  IF lv_resto < 2.
+    lv_digito1 = 0.
+  ELSE.
+    lv_digito1 = 11 - lv_resto.
+  ENDIF.
+
+  " 3. Cálculo do Segundo Dígito Verificador
+  lv_soma = 0.
+  lv_peso = 11.
+  lv_index = 0.
+
+  DO 10 TIMES.
+    lv_caracter = lv_cpf+lv_index(1).
+    lv_num = lv_caracter.
+    lv_soma = lv_soma + ( lv_num * lv_peso ).
+    lv_peso = lv_peso - 1.
+    lv_index = lv_index + 1.
+  ENDDO.
+
+  lv_resto = lv_soma MOD 11.
+  IF lv_resto < 2.
+    lv_digito2 = 0.
+  ELSE.
+    lv_digito2 = 11 - lv_resto.
+  ENDIF.
+
+  " 4. Confronta os dígitos calculados com os informados
+  DATA(lv_d1_informado) = lv_cpf+9(1).
+  DATA(lv_d2_informado) = lv_cpf+10(1).
+
+  IF lv_digito1 = lv_d1_informado AND lv_digito2 = lv_d2_informado.
+    e_valido = abap_true.
+  ENDIF.
+
+
+
+
+ENDFUNCTION.

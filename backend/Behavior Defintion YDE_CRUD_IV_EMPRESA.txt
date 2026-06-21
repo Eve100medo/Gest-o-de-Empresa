@@ -1,0 +1,32 @@
+managed implementation in class ycl_de_crud_iv_empresa unique;
+strict ( 2 );
+
+define behavior for YDE_CRUD_IV_EMPRESA //alias <alias_name>
+persistent table ysempresa
+with additional save
+lock master
+authorization master ( instance )
+early numbering
+{
+  create;
+  update;
+  //delete;
+
+  field ( readonly ) IdEmpresa;
+
+  action deletarEmpresa result [1] $self;
+  validation validarCNPJ on save { create; update; field CNPJ; }
+  determination setAtivoDefaultEmpresa on modify { create; }
+  //field ( readonly ) DataInicio, DataFim;
+  mapping for YSEMPRESA
+  {
+    IdEmpresa = id_empresa;
+    Cnpj = cnpj;
+    Empresa = empresa;
+    DataInicio = data_inicio;
+    DataFim = data_fim;
+    Ativo = ativo;
+    CriadoEm = criado_em;
+    MudaEm = muda_em;
+  }
+}

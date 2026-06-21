@@ -1,0 +1,156 @@
+FUNCTION YSFM_VALIDA_CNPJ.
+*"----------------------------------------------------------------------
+*"*"Interface local:
+*"  IMPORTING
+*"     REFERENCE(I_CNPJ) TYPE  /TMF/DE_CNPJ
+*"  EXPORTING
+*"     REFERENCE(E_VALIDO) TYPE  ABAP_BOOL
+*"----------------------------------------------------------------------
+
+
+DATA: lv_cnpj      TYPE char14,
+
+        lv_soma      TYPE i,
+
+        lv_dig1      TYPE i,
+
+        lv_dig2      TYPE i,
+
+        lv_num       TYPE i,
+
+        lv_caracter  TYPE char1,
+
+        lv_index     TYPE i.
+
+
+
+  e_valido = abap_false.
+
+
+
+  " 1. Limpeza de caracteres residuais (remove pontos, barras e traços)
+
+  DATA(lv_aux) = i_cnpj.
+
+  REPLACE ALL OCCURRENCES OF '.' IN lv_aux WITH ''.
+
+  REPLACE ALL OCCURRENCES OF '/' IN lv_aux WITH ''.
+
+  REPLACE ALL OCCURRENCES OF '-' IN lv_aux WITH ''.
+
+  CONDENSE lv_aux NO-GAPS.
+
+
+
+  lv_cnpj = lv_aux.
+
+
+
+  " 2. Valida tamanho de 14 dígitos e descarta sequências repetidas
+
+  IF strlen( lv_cnpj ) <> 14 OR
+
+     lv_cnpj = '00000000000000' OR lv_cnpj = '11111111111111' OR
+
+     lv_cnpj = '22222222222222' OR lv_cnpj = '33333333333333' OR
+
+     lv_cnpj = '44444444444444' OR lv_cnpj = '55555555555555' OR
+
+     lv_cnpj = '66666666666666' OR lv_cnpj = '77777777777777' OR
+
+     lv_cnpj = '88888888888888' OR lv_cnpj = '99999999999999'.
+
+    RETURN.
+
+  ENDIF.
+
+
+
+  " 3. Criação das tabelas de pesos oficiais para o cálculo do CNPJ
+
+  DATA(lt_pesos1) = VALUE int4_table( ( 5 ) ( 4 ) ( 3 ) ( 2 ) ( 9 ) ( 8 ) ( 7 ) ( 6 ) ( 5 ) ( 4 ) ( 3 ) ( 2 ) ).
+
+  DATA(lt_pesos2) = VALUE int4_table( ( 6 ) ( 5 ) ( 4 ) ( 3 ) ( 2 ) ( 9 ) ( 8 ) ( 7 ) ( 6 ) ( 5 ) ( 4 ) ( 3 ) ( 2 ) ).
+
+
+
+  " 4. Cálculo do 1º Dígito Verificador
+
+  lv_soma = 0.
+
+  LOOP AT lt_pesos1 INTO DATA(lv_peso).
+
+    lv_index = sy-tabix - 1.
+
+    lv_caracter = lv_cnpj+lv_index(1).
+
+    lv_num = lv_caracter.
+
+    lv_soma = lv_soma + ( lv_num * lv_peso ).
+
+  ENDLOOP.
+
+
+
+  lv_dig1 = lv_soma MOD 11.
+
+  IF lv_dig1 < 2.
+
+    lv_dig1 = 0.
+
+  ELSE.
+
+    lv_dig1 = 11 - lv_dig1.
+
+  ENDIF.
+
+
+
+  " 5. Cálculo do 2º Dígito Verificador
+
+  lv_soma = 0.
+
+  LOOP AT lt_pesos2 INTO lv_peso.
+
+    lv_index = sy-tabix - 1.
+
+    lv_caracter = lv_cnpj+lv_index(1).
+
+    lv_num = lv_caracter.
+
+    lv_soma = lv_soma + ( lv_num * lv_peso ).
+
+  ENDLOOP.
+
+
+
+  lv_dig2 = lv_soma MOD 11.
+
+  IF lv_dig2 < 2.
+
+    lv_dig2 = 0.
+
+  ELSE.
+
+    lv_dig2 = 11 - lv_dig2.
+
+  ENDIF.
+
+
+
+  " 6. Confronta os dígitos calculados com os informados no final do CNPJ
+
+  DATA(lv_d1_informado) = lv_cnpj+12(1).
+
+  DATA(lv_d2_informado) = lv_cnpj+13(1).
+
+
+
+  IF lv_dig1 = lv_d1_informado AND lv_dig2 = lv_d2_informado.
+
+    e_valido = abap_true.
+
+  ENDIF.
+
+
+ENDFUNCTION.

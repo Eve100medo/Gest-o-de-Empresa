@@ -1,0 +1,180 @@
+CLASS lhc_yde_crud_iv_atribuicao DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+
+    METHODS get_instance_authorizations FOR INSTANCE AUTHORIZATION
+      IMPORTING keys REQUEST requested_authorizations FOR yde_crud_iv_atribuicao RESULT result.
+
+    METHODS deletaratribuicao FOR MODIFY
+      IMPORTING keys FOR ACTION yde_crud_iv_atribuicao~deletaratribuicao RESULT result.
+
+    METHODS earlynumbering_create FOR NUMBERING
+      IMPORTING entities FOR CREATE yde_crud_iv_atribuicao.
+
+    METHODS setatribuacaoativodefault FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR yde_crud_iv_atribuicao~setatribuacaoativodefault.
+
+    METHODS validarexistenciadados FOR VALIDATE ON SAVE
+      IMPORTING keys FOR yde_crud_iv_atribuicao~validarexistenciadados.
+
+ENDCLASS.
+
+CLASS lhc_yde_crud_iv_atribuicao IMPLEMENTATION.
+
+  METHOD get_instance_authorizations.
+  ENDMETHOD.
+
+  METHOD deletaratribuicao.
+
+    DATA(lv_hoje) = sy-datum.
+    GET TIME STAMP FIELD DATA(lv_timestamp_modificacao).
+
+    LOOP AT keys INTO DATA(ls_key).
+
+      " SOFT DELETE EXCLUSIVO DA LINHA DE ATRIBUIÇÃO SELECIONADA
+      UPDATE ysatribuicao
+         SET ativo     = @abap_false,
+             data_fim  = @lv_hoje,
+             muda_em   = @lv_timestamp_modificacao
+       WHERE id_atribuicao = @ls_key-idatribuicao.
+
+      " Devolve a resposta técnica para o RAP responder com sucesso à UI
+      APPEND VALUE #( idatribuicao = ls_key-idatribuicao
+                      %param       = CORRESPONDING #( ls_key ) ) TO result.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD setatribuacaoativodefault.
+
+    " 1. Lê os registros atuais em memória para popular campos técnicos
+    READ ENTITIES OF yde_crud_iv_atribuicao IN LOCAL MODE
+      ENTITY yde_crud_iv_atribuicao
+        FIELDS ( ativo datainicio criadoem ) WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_atribuicoes).
+
+    DATA lt_update TYPE TABLE FOR UPDATE yde_crud_iv_atribuicao.
+
+    " Captura a data e o carimbo de data/hora atual do servidor
+    DATA(lv_data_atual) = sy-datum.
+    GET TIME STAMP FIELD DATA(lv_timestamp_atual).
+
+    " 2. Força o 'X' e os carimbos de tempo padrões se estiverem vazios ao criar
+    LOOP AT lt_atribuicoes INTO DATA(ls_atribuicao).
+      IF ls_atribuicao-ativo IS INITIAL OR ls_atribuicao-datainicio IS INITIAL.
+        APPEND VALUE #(
+          %tky         = ls_atribuicao-%tky
+          ativo        = COND #( WHEN ls_atribuicao-ativo IS INITIAL THEN abap_true ELSE ls_atribuicao-ativo )
+          datainicio   = COND #( WHEN ls_atribuicao-datainicio IS INITIAL THEN lv_data_atual ELSE ls_atribuicao-datainicio )
+          CriadoEm  = COND #( WHEN ls_atribuicao-CriadoEm IS INITIAL THEN lv_timestamp_atual ELSE ls_atribuicao-CriadoEm )
+        ) TO lt_update.
+      ENDIF.
+
+    ENDLOOP.
+
+    IF lt_update IS NOT INITIAL.
+      MODIFY ENTITIES OF yde_crud_iv_atribuicao IN LOCAL MODE
+        ENTITY yde_crud_iv_atribuicao
+          UPDATE FIELDS ( ativo datainicio criadoem ) WITH lt_update
+        REPORTED DATA(lt_reported).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD earlynumbering_create.
+    DATA: lv_next_number TYPE char10.
+
+    " Varre as entidades gerando o sequencial por ID técnico
+    LOOP AT entities INTO DATA(ls_entity) USING KEY id WHERE idatribuicao IS INITIAL.
+      CALL FUNCTION 'NUMBER_GET_NEXT'
+        EXPORTING
+          nr_range_nr = '01'
+          object      = 'YSNUM_ATR'
+        IMPORTING
+          number      = lv_next_number
+        EXCEPTIONS
+          OTHERS      = 7.
+
+      IF sy-subrc = 0.
+        CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'
+          EXPORTING
+            input  = lv_next_number
+          IMPORTING
+            output = lv_next_number.
+
+        APPEND VALUE #( %cid         = ls_entity-%cid
+                        idatribuicao = lv_next_number ) TO mapped-yde_crud_iv_atribuicao.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+
+  METHOD validarexistenciadados.
+
+    " Lê as chaves preenchidas na tela antes de permitir o commit
+    READ ENTITIES OF yde_crud_iv_atribuicao IN LOCAL MODE
+      ENTITY yde_crud_iv_atribuicao
+        FIELDS ( cnpj cpf ) WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_atribuicoes).
+
+    LOOP AT lt_atribuicoes INTO DATA(ls_atrib).
+
+      " 1. Valida se o CNPJ existe e está ativo na tabela de Empresas
+      SELECT SINGLE cnpj FROM ysempresa
+       WHERE cnpj  = @ls_atrib-cnpj
+         AND ativo = @abap_true
+        INTO @DATA(lv_cnpj_existe).
+
+      IF sy-subrc <> 0.
+        APPEND VALUE #( %tky = ls_atrib-%tky ) TO failed-yde_crud_iv_atribuicao.
+        APPEND VALUE #(
+            %tky = ls_atrib-%tky
+            %element-cnpj = if_abap_behv=>mk-on
+            %msg = new_message_with_text(
+                     severity = if_abap_behv_message=>severity-error
+                     text     = 'O CNPJ informado não corresponde a nenhuma Empresa cadastrada e ativa.'
+                   )
+        ) TO reported-yde_crud_iv_atribuicao.
+        CONTINUE.
+      ENDIF.
+
+      " 2. Valida se o CPF existe e está ativo na tabela de Inspetores
+      SELECT SINGLE cpf FROM ysinspetor
+       WHERE cpf   = @ls_atrib-cpf
+         AND ativo = @abap_true
+        INTO @DATA(lv_cpf_existe).
+
+      IF sy-subrc <> 0.
+        APPEND VALUE #( %tky = ls_atrib-%tky ) TO failed-yde_crud_iv_atribuicao.
+        APPEND VALUE #(
+            %tky = ls_atrib-%tky
+            %element-cpf = if_abap_behv=>mk-on
+            %msg = new_message_with_text(
+                     severity = if_abap_behv_message=>severity-error
+                     text     = 'O CPF informado não corresponde a nenhum Inspetor cadastrado e ativo.'
+                   )
+        ) TO reported-yde_crud_iv_atribuicao.
+      ENDIF.
+
+      " 3. TRAVA DE VÍNCULO ÚNICO: Como não há edição direta, se achar o CPF ativo, bloqueia direto
+      SELECT SINGLE cpf
+        FROM ysatribuicao
+       WHERE cpf   = @ls_atrib-cpf
+         AND ativo = @abap_true
+        INTO @DATA(lv_cpf_atrib_ativa).
+
+      IF sy-subrc = 0.
+        APPEND VALUE #( %tky = ls_atrib-%tky ) TO failed-yde_crud_iv_atribuicao.
+        APPEND VALUE #(
+            %tky = ls_atrib-%tky
+            %element-cpf = if_abap_behv=>mk-on
+            %msg = new_message_with_text(
+                     severity = if_abap_behv_message=>severity-error
+                     text     = 'Este Inspetor já possui um vínculo ativo.'
+                   )
+        ) TO reported-yde_crud_iv_atribuicao.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.

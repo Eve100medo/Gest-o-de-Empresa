@@ -1,0 +1,206 @@
+<mvc:View controllerName="com.ysui5petrobras.br.ysui5.petrobras.freestyle.controller.View1"
+    xmlns:mvc="sap.ui.core.mvc" displayBlock="true"
+    xmlns="sap.m"
+    xmlns:smartFilterBar="sap.ui.comp.smartfilterbar"
+    xmlns:smartTable="sap.ui.comp.smarttable"
+    xmlns:core="sap.ui.core"
+    xmlns:html="http://www.w3.org/1999/xhtml">
+    <Page id="page" title="{i18n>title}">
+        <content>            
+            <IconTabBar expandable="false" >            
+                <items>
+                    <IconTabFilter text="Empresas" key="empresas" icon="sap-icon://building">
+                        <VBox  fitContainer="true">            
+
+                            <smartFilterBar:SmartFilterBar 
+                                id="sfbEmpresa"                                 
+                                entitySet="YDE_CRUD_CV_EMPRESA" 
+                                liveMode="true">
+                                <smartFilterBar:controlConfiguration>
+                                    <smartFilterBar:ControlConfiguration  key="Cnpj" label="CNPJ" visibleInAdvancedArea="true"/>
+                                    <smartFilterBar:ControlConfiguration  key="Empresa" label="Empresa" visibleInAdvancedArea="true"/>
+                                </smartFilterBar:controlConfiguration>
+                            </smartFilterBar:SmartFilterBar>
+
+                            <smartTable:SmartTable 
+                                 id="tblEmpresa" 
+                                 entitySet="YDE_CRUD_CV_EMPRESA"   
+                                 smartFilterId="sfbEmpresa"                               
+                                 tableType="Table" 
+                                 enableAutoBinding="true" 
+                                 useVariantManagement="false" 
+                                 useTablePersonalisation="true" 
+                                 header="Empresas" 
+                                 showRowCount="true" 
+                                 requestAtLeastFields="IdEmpresa" 
+                                 initiallyVisibleFields="cnpj,Empresa">
+                                <smartTable:customToolbar>
+                                    <OverflowToolbar design="Transparent">                                   
+                                        <ToolbarSpacer/>
+
+                                        <Button text="Criar" icon="sap-icon://add" press="onCriarEmpresa" type="Transparent"/>
+                                        <Button text="Editar" icon="sap-icon://edit" press="onEditarEmpresa" type="Transparent"/>
+                                        <Button text="Deletar" icon="sap-icon://delete" press="onDeletarEmpresa" type="Negative"/>
+                                    </OverflowToolbar>
+                                </smartTable:customToolbar>
+                              
+                                <Table mode="MultiSelect">
+                                    <columns>
+                                        <Column id="colCNPJ">
+                                            <customData>
+                                                <core:CustomData key="p13nData" value='\{"columnKey": "Cnpj", "leadingProperty": "Cnpj", "sortProperty": "Cnpj", "filterProperty": "Cnpj"\}' />
+                                            </customData>
+                                            <Text text="CNPJ"/>
+                                        </Column>
+                                        <Column id="colEmpresa">
+                                            <customData>
+                                                <core:CustomData key="p13nData" value='\{"columnKey": "Empresa", "leadingProperty": "Empresa", "sortProperty": "Empresa", "filterProperty": "Empresa"\}'/>
+                                            </customData>
+                                            <Text text="Nome da Empresa"/>
+                                        </Column>
+                                    </columns>
+                        <items>
+                                        <ColumnListItem>
+                                            <cells>
+                                                <Text text="{Cnpj}"/>
+                                                <Text text="{Empresa}"/>                                              
+                                            </cells>
+                                        </ColumnListItem>
+                                    </items>
+                                </Table>
+                            </smartTable:SmartTable>
+                        </VBox> 
+                    </IconTabFilter>
+                    
+                    <IconTabFilter text="Inspetores" key="inspetores"   icon="sap-icon://manager">
+                        <VBox fitContainer="true">
+                            <smartFilterBar:SmartFilterBar 
+                                 id="sfbInspetor" 
+                                 entitySet="YDE_CRUD_CV_INSPETOR" 
+                                 liveMode="true"> 
+                                <smartFilterBar:controlConfiguration>
+                                    <smartFilterBar:ControlConfiguration key="Nome" label="Nome" visibleInAdvancedArea="true"/>
+                                    <smartFilterBar:ControlConfiguration key="Cpf" label="CPF" visibleInAdvancedArea="true"/>
+                                </smartFilterBar:controlConfiguration>
+                            </smartFilterBar:SmartFilterBar>
+
+                            <smartTable:SmartTable 
+                                id="tblInspetor" 
+                                entitySet="YDE_CRUD_CV_INSPETOR" 
+                                smartFilterId="sfbInspetor" 
+                                tableType="Table" 
+                                enableAutoBinding="true" 
+                                useVariantManagement="false" 
+                                useTablePersonalisation="true" 
+                                header="Inspetores" 
+                                showRowCount="true" 
+                                requestAtLeastFields="IdInspetor" 
+                                initiallyVisibleFields="Nome,Cpf">
+                                <smartTable:customToolbar>
+                                    <OverflowToolbar design="Transparent">
+
+                                        <ToolbarSpacer/>
+
+                                        <Button text="Criar" icon="sap-icon://add" press="onCriarInspetor" type="Transparent"/>
+                                        <Button text="Editar" icon="sap-icon://edit" press="onEditarInspetor" type="Transparent"/>
+                                        <Button text="Deletar" icon="sap-icon://delete" press="onDeletarInspetor" type="Negative"/>
+                                    </OverflowToolbar>
+                                </smartTable:customToolbar>
+
+                                <Table mode="MultiSelect">
+                                    <columns>
+                                        <Column id="colCPF">
+                                            <customData>
+                                                <core:CustomData key="p13nData" value='\{"columnKey": "Cpf", "leadingProperty": "Cpf", "sortProperty": "Cpf", "filterProperty": "Cpf"\}' />
+                                            </customData>
+                                            <Text text="CPF"/>
+                                        </Column>
+                                        <Column id="colNome">
+                                            <customData>
+                                                <core:CustomData key="p13nData" value='\{"columnKey": "Nome", "leadingProperty": "Nome", "sortProperty": "Nome", "filterProperty": "Nome"\}' />
+                                            </customData>
+                                            <Text text="Nome"/>
+                                        </Column>
+                                    </columns>
+                                    <items>
+                                        <ColumnListItem>
+                                            <cells>
+                                                <Text text="{Cpf}"/>
+                                                <Text text="{Nome}"/>
+                                            </cells>
+                                        </ColumnListItem>
+                                    </items>
+                                </Table>
+                            </smartTable:SmartTable>
+                        </VBox>
+                    </IconTabFilter>
+
+                    <IconTabFilter text="Atribuições" key="atribuicoes" icon="sap-icon://user-edit">
+                        <VBox fitContainer="true">
+                            <smartFilterBar:SmartFilterBar 
+                                id="sfbAtribuicao" 
+                                entitySet="YDE_CRUD_CV_ATRIBUICAO" 
+                                liveMode="true">
+                                <smartFilterBar:controlConfiguration>
+                                    <smartFilterBar:ControlConfiguration key="Cnpj" label="CNPJ" visibleInAdvancedArea="true"/>
+                                    <smartFilterBar:ControlConfiguration key="Cpf" label="CPF" visibleInAdvancedArea="true"/>
+                                    <smartFilterBar:ControlConfiguration key="Empresa" label="Empresa" visibleInAdvancedArea="true"/>
+                                    <smartFilterBar:ControlConfiguration key="Nome" label="Nome" visibleInAdvancedArea="true"/>
+                                </smartFilterBar:controlConfiguration>
+                            </smartFilterBar:SmartFilterBar>
+
+                            <smartTable:SmartTable id="tblAtribuicao" entitySet="YDE_CRUD_CV_ATRIBUICAO" smartFilterId="sfbAtribuicao" tableType="Table" enableAutoBinding="true" useVariantManagement="false" useTablePersonalisation="true" header="Atribuições" showRowCount="true" initiallyVisibleFields="Cnpj,Cpf,Empresa,Nome" requestAtLeastFields="IdAtribuicao">
+                                <smartTable:customToolbar>
+                                    <OverflowToolbar design="Transparent">
+                                        <ToolbarSpacer/>
+                                        <Button text="Criar" icon="sap-icon://add" press="onCriarAtribuicao" type="Transparent"/>
+                                        <Button text="Deletar" icon="sap-icon://delete" press="onDeletarAtribuicao" type="Negative"/>
+                                    </OverflowToolbar>
+                                </smartTable:customToolbar>
+
+                                <Table mode="MultiSelect">
+                                    <columns>
+                                        <Column id="colCNPJAtribuicao">
+                                            <customData>
+                                                <core:CustomData key="p13nData" value='\{"columnKey": "Cnpj", "leadingProperty": "Cnpj", "sortProperty": "Cnpj", "filterProperty": "Cnpj"\}' />
+                                            </customData>
+                                            <Text text="CNPJ"/>
+                                        </Column>
+                                        <Column id="colCPFAtribuicao">
+                                            <customData>
+                                                <core:CustomData key="p13nData" value='\{"columnKey": "Cpf", "leadingProperty": "Cpf", "sortProperty": "Cpf", "filterProperty": "Cpf"\}' />
+                                            </customData>
+                                            <Text text="CPF"/>
+                                        </Column>                                       
+                                        <Column id="colempresaAtribuicao">
+                                            <customData>
+                                                <core:CustomData key="p13nData" value='\{"columnKey": "Empresa", "leadingProperty": "Empresa", "sortProperty": "Empresa", "filterProperty": "Empresa"\}' />
+                                            </customData>
+                                            <Text text="Empresa"/>
+                                        </Column>
+                                        <Column id="coLNomeAtribuicao">
+                                            <customData>
+                                                <core:CustomData key="p13nData" value='\{"columnKey": "Nome", "leadingProperty": "Nome", "sortProperty": "Nome", "filterProperty": "Nome"\}' />
+                                            </customData>
+                                            <Text text="Nome"/>
+                                        </Column>
+                                    </columns>
+                                    <items>
+                                        <ColumnListItem>
+                                            <cells>
+                                                <Text text="{Cnpj}"/>
+                                                <Text text="{Cpf}"/>
+                                                <Text text="{Empresa}"/>
+                                                <Text text="{Nome}"/>                                                
+                                            </cells>
+                                        </ColumnListItem>
+                                    </items>
+                                </Table>
+                            </smartTable:SmartTable>
+                        </VBox>
+                    </IconTabFilter>
+                </items>
+            </IconTabBar>
+        </content>
+    </Page>
+</mvc:View>

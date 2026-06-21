@@ -1,0 +1,11 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+    <SelectDialog
+        id="idValueHelpDialog"
+        title="Selecione um registro"
+        liveChange="onValueHelpSearch"
+        confirm="_onValueHelpConfirm"
+        cancel="_onValueHelpCancel">
+        </SelectDialog>
+</core:FragmentDefinition>

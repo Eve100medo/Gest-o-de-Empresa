@@ -1,0 +1,34 @@
+managed implementation in class ycl_de_crud_iv_inspetor unique;
+strict ( 2 );
+
+define behavior for YDE_CRUD_IV_INSPETOR //alias <alias_name>
+persistent table ysinspetor
+with additional save
+lock master
+authorization master ( instance )
+early numbering
+{
+  create;
+  update;
+  //  delete;
+
+  determination setAtivoDefault on modify { create; }
+
+  // Adicione esta linha: uma ação customizada que o front vai chamar no lugar do delete
+  action deletarRegistro result [1] $self;
+  validation validarCPF on save { create; update; field CPF; }
+  field ( readonly ) IdInspetor;
+
+  //field ( readonly ) DataInicio, DataFim;
+  mapping for ysinspetor
+  {
+    IdInspetor = id_inspetor;
+    CPF = cpf;
+    Nome = nome;
+    DataInicio = data_inicio;
+    DataFim = data_fim;
+    Ativo = ativo;
+    CriadoEm = criado_em;
+    MudaEm = muda_em;
+  }
+}

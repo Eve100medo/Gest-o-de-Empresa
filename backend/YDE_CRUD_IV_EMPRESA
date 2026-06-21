@@ -1,0 +1,283 @@
+CLASS lsc_yde_crud_iv_empresa DEFINITION INHERITING FROM cl_abap_behavior_saver.
+
+  PROTECTED SECTION.
+
+    METHODS save_modified REDEFINITION.
+
+ENDCLASS.
+
+CLASS lsc_yde_crud_iv_empresa IMPLEMENTATION.
+
+  METHOD save_modified.
+
+     " 1. Verifica se houve alguma alteração (Update) vinda do Front-end
+    IF update-yde_crud_iv_empresa IS NOT INITIAL.
+
+      LOOP AT update-yde_crud_iv_empresa INTO DATA(ls_empresa).
+
+        " 2. Busca o CNPJ real no banco usando o Id técnico que está sendo editado
+        SELECT SINGLE cnpj
+          FROM ysempresa
+         WHERE id_empresa = @ls_empresa-idempresa
+          INTO @DATA(lv_cnpj).
+
+        " 3. Se a descrição/nome da empresa foi alterada, atualiza em cascata na Atribuição
+        IF ls_empresa-empresa IS NOT INITIAL AND lv_cnpj IS NOT INITIAL.
+          UPDATE ysatribuicao
+             SET empresa = @ls_empresa-empresa
+           WHERE cnpj    = @lv_cnpj
+           AND ativo   = @abap_true.
+        ENDIF.
+
+      ENDLOOP.
+    ENDIF.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+*CLASS lsc_yde_crud_iv_empresa DEFINITION INHERITING FROM CL_ABAP_BEHAVIOR_SAVER.
+*
+*  PROTECTED SECTION.
+*
+*    METHODS save_modified REDEFINITION.
+*
+*ENDCLASS.
+*
+*CLASS lsc_yde_crud_iv_empresa IMPLEMENTATION.
+*
+*  METHOD save_modified.
+*
+*    " 1. Verifica se houve alguma alteração (Update) vinda do Front-end
+*    IF update-YSEMPRESA IS NOT INITIAL.
+*
+*      LOOP AT update-ysempresa INTO DATA(ls_empresa).
+*
+*        " 2. Busca o CNPJ real no banco usando o Id técnico que está sendo editado
+*        SELECT SINGLE cnpj
+*          FROM ysempresa
+*         WHERE id_empresa = @ls_empresa-idempresa
+*          INTO @DATA(lv_cnpj).
+*
+*        " 3. Se a descrição/nome da empresa foi alterada, atualiza em cascata na Atribuição
+*        IF ls_empresa-empresa IS NOT INITIAL AND lv_cnpj IS NOT INITIAL.
+*          UPDATE ysatribuicao
+*             SET empresa = @ls_empresa-empresa
+*           WHERE cnpj    = @lv_cnpj
+*           AND ativo   = @abap_true.
+*        ENDIF.
+*
+*      ENDLOOP.
+*    ENDIF.
+*  ENDMETHOD.
+*
+*ENDCLASS.
+
+
+CLASS lhc_yde_crud_iv_empresa DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+
+    METHODS get_instance_authorizations FOR INSTANCE AUTHORIZATION
+      IMPORTING keys REQUEST requested_authorizations FOR yde_crud_iv_empresa RESULT result.
+
+    METHODS earlynumbering_create FOR NUMBERING
+      IMPORTING entities FOR CREATE yde_crud_iv_empresa.
+
+    METHODS deletarempresa FOR MODIFY
+      IMPORTING keys FOR ACTION yde_crud_iv_empresa~deletarempresa RESULT result.
+
+    METHODS setativodefaultempresa FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR yde_crud_iv_empresa~setativodefaultempresa.
+
+    METHODS validarcnpj FOR VALIDATE ON SAVE
+      IMPORTING keys FOR yde_crud_iv_empresa~validarcnpj.
+
+ENDCLASS.
+
+CLASS lhc_yde_crud_iv_empresa IMPLEMENTATION.
+
+  METHOD get_instance_authorizations.
+  ENDMETHOD.
+
+
+
+  METHOD setativodefaultempresa.
+
+    " 1. Lê os registros atuais em processamento - Ajustado para CamelCase oficial do BDEF
+    READ ENTITIES OF yde_crud_iv_empresa IN LOCAL MODE
+      ENTITY yde_crud_iv_empresa
+        FIELDS ( ativo datainicio criadoem ) WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_empresas).
+
+    DATA lt_update TYPE TABLE FOR UPDATE yde_crud_iv_empresa.
+
+    " Captura a data e o carimbo de data/hora atual do servidor
+    DATA(lv_data_atual) = sy-datum.
+    GET TIME STAMP FIELD DATA(lv_timestamp_atual).
+
+    " 2. Preenche os valores padrões iniciais se estiverem vazios
+    LOOP AT lt_empresas INTO DATA(ls_empresa) WHERE ativo IS INITIAL.
+
+      " Se o Ativo OU a DataInicio estiverem em branco, força o preenchimento no Back-end
+      IF ls_empresa-ativo IS INITIAL OR ls_empresa-datainicio IS INITIAL.
+
+        APPEND VALUE #(
+          %tky         = ls_empresa-%tky
+          ativo        = COND #( WHEN ls_empresa-ativo IS INITIAL THEN abap_true ELSE ls_empresa-ativo )
+          datainicio   = COND #( WHEN ls_empresa-datainicio IS INITIAL THEN lv_data_atual ELSE ls_empresa-datainicio )
+          CriadoEm  = COND #( WHEN ls_empresa-CriadoEm IS INITIAL THEN lv_timestamp_atual ELSE ls_empresa-CriadoEm )
+        ) TO lt_update.
+
+      ENDIF.
+    ENDLOOP.
+
+    IF lt_update IS NOT INITIAL.
+      MODIFY ENTITIES OF yde_crud_iv_empresa IN LOCAL MODE
+        ENTITY yde_crud_iv_empresa
+          UPDATE FIELDS ( ativo datainicio criadoem  ) WITH lt_update
+        REPORTED DATA(lt_reported).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD earlynumbering_create.
+
+    DATA: lv_next_number TYPE char10.
+
+    " Varre as entidades utilizando a chave secundária 'id'
+    LOOP AT entities INTO DATA(ls_entity) USING KEY id WHERE idempresa IS INITIAL.
+
+      " Busca o número sequencial no objeto ZNUM_EMP da SNRO
+      CALL FUNCTION 'NUMBER_GET_NEXT'
+        EXPORTING
+          nr_range_nr = '01'
+          object      = 'YSNUM_EMPR'
+        IMPORTING
+          number      = lv_next_number
+        EXCEPTIONS
+          OTHERS      = 7.
+
+      IF sy-subrc = 0.
+        " Garante o preenchimento dos zeros à esquerda
+        CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'
+          EXPORTING
+            input  = lv_next_number
+          IMPORTING
+            output = lv_next_number.
+
+        APPEND VALUE #( %cid       = ls_entity-%cid
+                        idempresa  = lv_next_number ) TO mapped-yde_crud_iv_empresa.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD deletarempresa.
+
+    DATA(lv_hoje) = sy-datum.
+    GET TIME STAMP FIELD DATA(lv_timestamp_modificacao).
+
+    " Declara o tipo local do RANGE para evitar o erro de Type Unknown
+    DATA lr_range_cpfs TYPE RANGE OF ysinspetor-cpf.
+
+    LOOP AT keys INTO DATA(ls_key).
+
+      " 1. Busca o CNPJ da empresa antes de alterar o status para o cascata
+      SELECT SINGLE cnpj FROM ysempresa
+       WHERE id_empresa = @ls_key-idempresa
+        INTO @DATA(lv_cnpj).
+
+      " 2. SOFT DELETE DA EMPRESA
+      UPDATE ysempresa
+         SET ativo     = @abap_false,
+             data_fim  = @lv_hoje,
+             muda_em   = @lv_timestamp_modificacao
+       WHERE id_empresa = @ls_key-idempresa.
+
+      IF sy-subrc = 0 AND lv_cnpj IS NOT INITIAL.
+
+        " 2.1 LÓGICA: Busca os CPFs dos inspetores vinculados a este CNPJ
+        SELECT cpf
+          FROM ysatribuicao
+         WHERE cnpj  = @lv_cnpj
+           AND ativo = @abap_true
+          INTO TABLE @DATA(lt_cpfs_vinculados).
+
+        IF lt_cpfs_vinculados IS NOT INITIAL.
+          " Limpa o range para a próxima iteração do loop
+          CLEAR lr_range_cpfs.
+
+          " Monta o RANGE usando a tabela declarada localmente
+          lr_range_cpfs = VALUE #(
+            FOR ls_cpf IN lt_cpfs_vinculados
+            ( sign = 'I' option = 'EQ' low = ls_cpf-cpf )
+          ).
+
+          " 2.2 LÓGICA: Aplica o soft delete na tabela de inspetores usando o RANGE
+          UPDATE ysinspetor
+             SET ativo    = @abap_false,
+                 data_fim = @lv_hoje,
+                 muda_em  = @lv_timestamp_modificacao
+           WHERE cpf IN @lr_range_cpfs.
+        ENDIF.
+
+        " 3. CASCADE: Desativa e atualiza os tempos nas atribuições vinculadas por CNPJ
+        UPDATE ysatribuicao
+           SET ativo     = @abap_false,
+               data_fim  = @lv_hoje,
+               muda_em   = @lv_timestamp_modificacao
+         WHERE cnpj      = @lv_cnpj.
+
+      ENDIF.
+
+      " Chaves técnicas em CamelCase condizente com o BDEF
+      APPEND VALUE #( idempresa = ls_key-idempresa
+                      %param    = CORRESPONDING #( ls_key ) ) TO result.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD validarcnpj.
+
+     " 1. Lê os CNPJs preenchidos na tela
+    READ ENTITIES OF yde_crud_iv_empresa IN LOCAL MODE
+      ENTITY yde_crud_iv_empresa
+        FIELDS ( CNPJ ) WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_empresas).
+
+    LOOP AT lt_empresas INTO DATA(ls_empresa).
+      DATA(lv_valido) = abap_false.
+
+      " 2. Limpa caracteres residuais (pontos, barras, traços) vindos do front
+      DATA(lv_cnpj_limpo) = ls_empresa-CNPJ.
+      REPLACE ALL OCCURRENCES OF '.' IN lv_cnpj_limpo WITH ''.
+      REPLACE ALL OCCURRENCES OF '/' IN lv_cnpj_limpo WITH ''.
+      REPLACE ALL OCCURRENCES OF '-' IN lv_cnpj_limpo WITH ''.
+      CONDENSE lv_cnpj_limpo NO-GAPS.
+
+      " 3. Chama a Function Module de validação ativa na SE37
+      CALL FUNCTION 'YSFM_VALIDA_CNPJ'
+        EXPORTING
+          I_CNPJ   = lv_cnpj_limpo
+        IMPORTING
+          E_VALIDO = lv_valido.
+
+      " 4. Se o CNPJ for inválido, barra o salvamento e emite a mensagem
+      IF lv_valido = abap_false.
+        APPEND VALUE #( %tky = ls_empresa-%tky ) TO failed-yde_crud_iv_empresa.
+
+        APPEND VALUE #(
+            %tky = ls_empresa-%tky
+            %element-cnpj = if_abap_behv=>mk-on
+            %msg = new_message_with_text(
+                     severity = if_abap_behv_message=>severity-error
+                     text     = 'O número de CNPJ informado é inválido'
+                   )
+        ) TO reported-yde_crud_iv_empresa.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+
+
+ENDCLASS.

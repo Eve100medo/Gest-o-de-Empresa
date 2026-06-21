@@ -1,0 +1,10 @@
+projection;
+strict ( 2 );
+
+define behavior for YDE_CRUD_CV_EMPRESA //alias <alias_name>
+{
+  use create;
+  use update;
+
+  use action deletarEmpresa;
+}

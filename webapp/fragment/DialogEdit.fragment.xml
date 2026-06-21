@@ -1,0 +1,91 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.ui.layout.form">
+    <Dialog title="{modelDialog>/tituloDialog}" id="idEditDialog">
+        <VBox class="sapUiSmallMargin">
+
+            <f:Form editable="true">
+                <f:layout>
+                    <f:ResponsiveGridLayout labelSpanXL="3" labelSpanL="3" labelSpanM="3" labelSpanS="12" adjustLabelSpan="false" emptySpanXL="4" emptySpanL="4" emptySpanM="4" emptySpanS="0"/>
+                </f:layout>
+                <f:formContainers>
+                    <f:FormContainer>
+                        <f:formElements>
+                            
+                            <f:FormElement label="{modelDialog>/labelChave}" visible="{modelDialog>/exibirChaveGeral}">
+                                <f:fields>
+                                    <Input 
+                                       value="{modelDialog>/chave}" 
+                                       editable="{modelDialog>/chaveEditavel}" 
+                                       placeholder="Apenas números" 
+                                       liveChange=".onFormatCpfCnpj"
+                                        maxLength="18"
+                                        />
+                                </f:fields>
+                            </f:FormElement>
+                            
+                            <f:FormElement label="{modelDialog>/labelNome}" visible="{modelDialog>/exibirChaveGeral}">
+                                <f:fields>
+                                    <Input value="{modelDialog>/nome}" placeholder=""/>
+                                </f:fields>
+                            </f:FormElement>
+
+                            <f:FormElement label="CNPJ da Empresa" visible="{modelDialog>/exibirAtribuicao}">
+                                <f:fields>
+                                    <Input value="{modelDialog>/atribCNPJ}" 
+                                           editable="{modelDialog>/chaveEditavel}" 
+                                           placeholder="Selecione o CNPJ..."
+                                           maxLength="14"
+                                           liveChange=".onFormatCpfCnpj"
+                                           showValueHelp="true" 
+                                           valueHelpRequest="onValueHelpCNPJ"/>
+                                </f:fields>
+                            </f:FormElement>
+
+                            <f:FormElement label="Nome da Empresa" visible="{modelDialog>/exibirAtribuicao}">
+                                <f:fields>
+                                    <Input 
+                                        value="{modelDialog>/nomeEmpresaAtrib}" 
+                                        editable="false" 
+                                        placeholder=""
+                                        maxLength="14"
+                                        liveChange=".onFormatCpfCnpj"
+                                        />
+                                </f:fields>
+                            </f:FormElement>
+                            
+                            <f:FormElement label="CPF do Inspetor" visible="{modelDialog>/exibirAtribuicao}">
+                                <f:fields>
+                                    <Input value="{modelDialog>/atribCPF}" 
+                                           editable="{modelDialog>/chaveEditavel}" 
+                                           placeholder="Selecione o CPF..."
+                                           showValueHelp="true" 
+                                           maxLength="11"
+                                           type="Number"
+                                           valueHelpRequest="onValueHelpCPF"/>
+                                </f:fields>
+                            </f:FormElement>
+
+                            <f:FormElement label="Nome do Inspetor" visible="{modelDialog>/exibirAtribuicao}">
+                                <f:fields>
+                                    <Input value="{modelDialog>/nomeInspetorAtrib}" editable="false" placeholder=""/>
+                                </f:fields>
+                            </f:FormElement>
+                            
+                        </f:formElements>
+                    </f:FormContainer>
+                </f:formContainers>
+            </f:Form>
+
+        </VBox>
+    
+
+     <beginButton>
+        <Button text="Salvar" press="onSaveDialog" type="Emphasized"/>
+     </beginButton>
+     <endButton>
+        <Button text="Cancelar" press="onCloseDialog"/>
+     </endButton>
+   </Dialog> 
+</core:FragmentDefinition>
